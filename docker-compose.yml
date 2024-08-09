@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  discordbot:
+    build: .
+    environment:
+      - DISCORD_BOT_TOKEN=${MTIwMzMyNzcxODQ5NDcwNzcyMg.GctaCf.hjvUUvQQ2O38v9jnV0zRRQGEk-YrDHho2eBsgI}
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
