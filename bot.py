@@ -6,7 +6,7 @@ import yt_dlp
 import asyncio
 from dotenv import load_dotenv
 
-# Load environment variables from .env file if it exists
+# Load environment variables from ..env file if it exists
 load_dotenv()
 
 class MyClient:
@@ -127,6 +127,11 @@ class MyClient:
                 voice_client.play(discord.FFmpegPCMAudio(file, executable='ffmpeg'))
                 voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
                 voice_client.source.volume = 0.5
+
+                while voice_client.is_playing():
+                    await asyncio.sleep(1)
+                await asyncio.sleep(1)
+
             except Exception as e:
                 await ctx.send(f"An error occurred while playing the file: {str(e)}")
         else:
@@ -137,7 +142,7 @@ token = os.getenv("DISCORD_BOT_TOKEN")
 
 # Check if the token is loaded correctly
 if not token:
-    raise ValueError("No DISCORD_BOT_TOKEN found in the environment variables. Make sure the .env file is set correctly.")
+    raise ValueError("No DISCORD_BOT_TOKEN found in the environment variables. Make sure the ..env file is set correctly.")
 
 Discord_Bot = MyClient()
 Discord_Bot.bot.run(token)
