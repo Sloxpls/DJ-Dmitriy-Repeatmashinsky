@@ -1,26 +1,21 @@
-# Use an official Python runtime as a parent image
+# Use the official Python slim image as the base image
 FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set the working directory inside the container to /app
 WORKDIR /app
 
-# Ensure pip is installed (this step is crucial for slim images)
-RUN apt-get update && apt-get install -y \
-    python3-pip \
+# Copy the 'src' folder content into the /app directory in the container
+COPY src/ /app/
+
+# Update the package list and install required packages
+# Install ffmpeg and python3-pip, then clean up apt cache to keep the image size small
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the current directory contents into the container at /app
-COPY . /app
-
-# Install any needed packages specified in requirements.txt
+# Install Python dependencies from requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
-
-# Define environment variable
-ENV DISCORD_BOT_TOKEN=MTIwMzMyNzcxODQ5NDcwNzcyMg.GctaCf.hjvUUvQQ2O38v9jnV0zRRQGEk-YrDHho2eBsgI
-
-# Run bot.py when the container launches
+# Set the command to run your bot script
 CMD ["python3", "bot.py"]
