@@ -2,7 +2,7 @@ import os
 import json
 from discord.ext import commands
 from dotenv import load_dotenv
-from src.music.dj import DJ
+from src.music.dj_commands import DJ
 
 load_dotenv()
 
@@ -10,12 +10,10 @@ load_dotenv()
 class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=commands.Intents.all())
-        self.playlists_file = 'assets/playlists.json'
+        self.playlists_file = '../assets/playlists.json'
         self.playlists = self.load_playlists()
         self.add_cog(DJ(self))
 
-
-    #load in json, if not exist crete
     def load_playlists(self):
         if os.path.exists(self.playlists_file):
             with open(self.playlists_file, 'r') as f:
@@ -25,7 +23,6 @@ class MyBot(commands.Bot):
                 json.dump({}, f)
             return {}
 
-    #writes to playlist to json file
     def save_playlists(self):
         with open(self.playlists_file, 'w') as f:
             json.dump(self.playlists, f, indent=4)
@@ -65,6 +62,8 @@ class MyBot(commands.Bot):
                     !repeat - Repeat current song or playlist.
                     """
         await ctx.send(commands_info)
+
+
 
 
 if __name__ == "__main__":
