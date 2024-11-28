@@ -17,12 +17,12 @@
   Plays the selected playlist.
 - **`!info spellista[x]`**  
   Displays info about the selected playlist.
-- **`!add spellista[link]`**  
+- **`!add spellista[x][link]`**  
   Adds a link to the playlist.
-- **`!remove spellista`**  
-  Removes the current playlist.
 - **`!remove spellista[x]`**  
-  Removes the selected playlist.
+  Removes the current playlist.
+- **`!remove spellista[x][link]`**  
+  Removes the selected link.
 - **`!repeat`**  
   Repeats the current music or playlist.
 
