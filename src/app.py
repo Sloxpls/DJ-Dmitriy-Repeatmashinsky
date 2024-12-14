@@ -11,6 +11,7 @@ from src.cogs.steam import SteamCog
 from src.cogs.eleven import ElevenCog
 from src.cogs.hello import HelloCog
 from src.cogs.dj import DJ
+from src.cogs.fishing import Fishing
 load_dotenv()
 
 ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
@@ -34,6 +35,7 @@ async def on_ready():
     await bot.add_cog(AnimeQuoteCog(bot))
     await bot.add_cog(HelloCog(bot, ELEVEN_API_KEY))
     await bot.add_cog(DJ(bot))
+    await bot.add_cog(Fishing(bot))
 
 @bot.command()
 async def d(ctx):
