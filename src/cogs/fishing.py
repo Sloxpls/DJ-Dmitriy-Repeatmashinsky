@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 
-class Fishing(commands.Cog):
+class FishingCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.alone_users = {}

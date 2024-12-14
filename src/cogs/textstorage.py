@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 
-class TextStorage(commands.Cog):
+class TextstorageCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.file_path = "saved_text.txt"
@@ -55,5 +55,3 @@ class TextStorage(commands.Cog):
             file.write(f"{note}\n")
         await ctx.send("Feature request added.")
 
-async def setup(bot):
-    await bot.add_cog(TextStorage(bot))

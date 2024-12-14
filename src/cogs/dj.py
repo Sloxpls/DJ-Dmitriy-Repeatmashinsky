@@ -16,12 +16,12 @@ class DjCog(commands.Cog):
     def load_playlists(self):
         playlists = {}
 
-        json_path = "../assets/playlists.json"
+        json_path = "./assets/playlists.json"
         if os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
                 playlists.update(json.load(f))
 
-        mp3_path = r"../assets/mp3"
+        mp3_path = r"./assets/mp3"
         if os.path.exists(mp3_path):
             print(f"Hittade mp3-mappen: {mp3_path}")
             for folder in os.listdir(mp3_path):
@@ -133,7 +133,7 @@ class DjCog(commands.Cog):
         await ctx.send(f"Repetera-läge är nu {status}.")
 
     @commands.command()
-    async def info(self, ctx, playlist_id: str):
+    async def musicinfo(self, ctx, playlist_id: str):
         playlist = self.playlists.get(playlist_id)
         if not playlist:
             await ctx.send(f"Spellistan `{playlist_id}` finns inte.")

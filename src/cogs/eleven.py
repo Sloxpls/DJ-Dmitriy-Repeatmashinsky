@@ -13,11 +13,15 @@ class ElevenCog(commands.Cog):
         self.api_key = api_key
         self.base_url = "https://api.elevenlabs.io/v1/text-to-speech"
         self.voice_id = "g5CIjZEefAph4nQFvHAz"
-        self.waman = "eVItLK1UvXctxuaRV2Oq"
+        self.voice_map = {
+            "default": "g5CIjZEefAph4nQFvHAz",
+            "waman": "XrExE9yKIg1WjnnlVkGX",
+            "man": "29vD33N1CtxCmqQRPOHJ"
+        }
 
-    async def fetch_tts_audio(self, text: str) -> str:
+    async def fetch_tts_audio(self, text: str, voice_id: str) -> str:
 
-        url = f"{self.base_url}/{self.voice_id}"
+        url = f"{self.base_url}/{voice_id}"
         headers = {
             "xi-api-key": self.api_key,
             "Content-Type": "application/json",
@@ -42,17 +46,18 @@ class ElevenCog(commands.Cog):
                 return audio_path
 
     @commands.command(name="tts")
-    async def tts(self, ctx, *, voice_id: str = None, text: str):
+    async def tts(self, ctx, voice: str = None, *, text: str):
         if not ctx.author.voice:
             await ctx.send("You need to be in a voice channel to use this command!")
             return
+
+        voice_id = self.voice_map.get(voice, self.voice_id)
 
         voice_channel = ctx.author.voice.channel
         vc = await voice_channel.connect()
 
         try:
-            selected_voice_id = voice_id or self.voice_id
-            audio_path = await self.fetch_tts_audio(text, selected_voice_id)
+            audio_path = await self.fetch_tts_audio(text, voice_id)
 
             vc.play(FFmpegPCMAudio(audio_path), after=lambda e: print(f"Finished playing: {text}"))
             while vc.is_playing():
