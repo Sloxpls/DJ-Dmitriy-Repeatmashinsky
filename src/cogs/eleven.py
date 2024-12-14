@@ -13,6 +13,7 @@ class ElevenCog(commands.Cog):
         self.api_key = api_key
         self.base_url = "https://api.elevenlabs.io/v1/text-to-speech"
         self.voice_id = "g5CIjZEefAph4nQFvHAz"
+        self.waman = "eVItLK1UvXctxuaRV2Oq"
 
     async def fetch_tts_audio(self, text: str) -> str:
 
@@ -41,7 +42,7 @@ class ElevenCog(commands.Cog):
                 return audio_path
 
     @commands.command(name="tts")
-    async def tts(self, ctx, *, text: str):
+    async def tts(self, ctx, *, voice_id: str = None, text: str):
         if not ctx.author.voice:
             await ctx.send("You need to be in a voice channel to use this command!")
             return
@@ -50,7 +51,8 @@ class ElevenCog(commands.Cog):
         vc = await voice_channel.connect()
 
         try:
-            audio_path = await self.fetch_tts_audio(text)
+            selected_voice_id = voice_id or self.voice_id
+            audio_path = await self.fetch_tts_audio(text, selected_voice_id)
 
             vc.play(FFmpegPCMAudio(audio_path), after=lambda e: print(f"Finished playing: {text}"))
             while vc.is_playing():
@@ -68,7 +70,7 @@ class ElevenCog(commands.Cog):
         voice_channel = ctx.author.voice.channel
         vc = await voice_channel.connect()
         try:
-            vc.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=f"./assets/mp3/sounds/{file}.mp3"), after=lambda e: print(f"Finished playing"))
+            vc.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=f"./assets/mp3/sounds/{file}.mp3"), after=lambda e: print(f"Finished playing {file}"))
             while vc.is_playing():
                 await asyncio.sleep(1)
 

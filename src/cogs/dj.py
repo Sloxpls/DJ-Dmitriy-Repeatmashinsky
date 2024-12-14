@@ -5,7 +5,7 @@ import os
 import asyncio
 
 
-class DJ(commands.Cog):
+class DjCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.repeat = False

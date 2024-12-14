@@ -3,7 +3,7 @@ from discord.ext import commands
 import aiohttp
 
 
-class AnimeQuoteCog(commands.Cog):
+class AnimeCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.api_url = "https://animechan.io/api/v1/quotes/random"
