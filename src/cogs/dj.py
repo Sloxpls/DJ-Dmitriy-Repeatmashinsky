@@ -5,7 +5,6 @@ import os
 import json
 import asyncio
 
-
 class DjCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -17,12 +16,12 @@ class DjCog(commands.Cog):
     def load_playlists(self):
         playlists = {}
 
-        json_path = "assets/playlist.json"
+        json_path = "../assets/playlists.json"
         if os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
                 playlists.update(json.load(f))
 
-        mp3_path = r"src\assets\mp3"
+        mp3_path = r"../assets/mp3"
         if os.path.exists(mp3_path):
             print(f"Hittade mp3-mappen: {mp3_path}")
             for folder in os.listdir(mp3_path):
@@ -53,12 +52,11 @@ class DjCog(commands.Cog):
         self.current_song = self.queue.pop(0)
         if os.path.isfile(self.current_song):  # MP3-fil
             await self.play_song_from_file(ctx, self.current_song)
-        else:  # YouTube-länk
+        else:
             await self.play_song_from_url(ctx, self.current_song)
 
     @commands.command()
     async def play(self, ctx, *args):
-        """Spela musik från en länk eller spellista."""
         if len(args) == 0:
             await ctx.send("Felaktigt kommando. Ange en länk eller spellista.")
             return
@@ -75,12 +73,10 @@ class DjCog(commands.Cog):
                 await ctx.send(f"Spellistan `{playlist_id}` finns inte.")
                 return
 
-            # Lägg till spellistans låtar i kön
             self.queue.extend(playlist.get("urls", []))
             self.queue.extend(playlist.get("files", []))
             await ctx.send(f"Lade till {len(playlist.get('urls', [])) + len(playlist.get('files', []))} låtar från spellistan `{playlist_id}` till kön.")
 
-            # Anslut och spela om inget redan spelas
             if not ctx.voice_client:
                 if not ctx.author.voice:
                     await ctx.send("Du måste vara i en röstkanal för att spela musik.")
@@ -92,7 +88,6 @@ class DjCog(commands.Cog):
                 await self.play_next(ctx)
             return
 
-        # Spela en enskild länk
         url = args[0]
         self.queue.append(url)
         await ctx.send(f"Lade till låten i kön: {url}")
@@ -109,14 +104,12 @@ class DjCog(commands.Cog):
 
     @commands.command()
     async def next(self, ctx):
-        """Hoppa till nästa låt."""
         if ctx.voice_client and ctx.voice_client.is_playing():
             ctx.voice_client.stop()  # Stoppa nuvarande låt
         await self.play_next(ctx)
 
     @commands.command()
     async def stop(self, ctx):
-        """Stoppa musiken."""
         if ctx.voice_client and ctx.voice_client.is_playing():
             ctx.voice_client.stop()
             self.queue.clear()
@@ -127,7 +120,6 @@ class DjCog(commands.Cog):
 
     @commands.command()
     async def leave(self, ctx):
-        """Koppla bort boten från röstkanalen."""
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
             await ctx.send("Boten har kopplats bort från röstkanalen.")
@@ -136,14 +128,12 @@ class DjCog(commands.Cog):
 
     @commands.command()
     async def repeat(self, ctx):
-        """Aktivera/inaktivera repetera-läge."""
         self.repeat = not self.repeat
         status = "aktiverat" if self.repeat else "avstängt"
         await ctx.send(f"Repetera-läge är nu {status}.")
 
     @commands.command()
     async def info(self, ctx, playlist_id: str):
-        """Visa info om en spellista."""
         playlist = self.playlists.get(playlist_id)
         if not playlist:
             await ctx.send(f"Spellistan `{playlist_id}` finns inte.")
@@ -162,7 +152,6 @@ class DjCog(commands.Cog):
 
     @commands.command()
     async def spellistor(self, ctx):
-        """Lista alla spellistor."""
         if not self.playlists:
             await ctx.send("Det finns inga tillgängliga spellistor.")
             return
@@ -174,7 +163,6 @@ class DjCog(commands.Cog):
         await ctx.send(response)
 
     async def play_song_from_file(self, ctx, file):
-        """Spela en MP3-fil."""
         if not ctx.voice_client:
             await ctx.send("Boten är inte ansluten till en röstkanal.")
             return
@@ -187,7 +175,6 @@ class DjCog(commands.Cog):
         ctx.voice_client.source.volume = 0.5
 
     async def play_song_from_url(self, ctx, url):
-        """Spela en YouTube-länk."""
         ydl_opts = {'format': 'bestaudio', 'quiet': True}
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
