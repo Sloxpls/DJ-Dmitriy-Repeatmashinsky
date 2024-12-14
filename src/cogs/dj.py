@@ -6,7 +6,7 @@ import json
 import asyncio
 
 
-class DJ(commands.Cog):
+class DjCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.repeat = False
@@ -19,18 +19,16 @@ class DJ(commands.Cog):
         playlists = {}
 
         # Ladda spellistor från JSON
-        json_path = "assets/playlist.json"
+        json_path = "./assets/playlists.json"
         if os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
                 playlists.update(json.load(f))
 
         # Lägg till MP3-spellistor
-        mp3_path = r"src\assets\mp3"
+        mp3_path = "./assets/mp3"
         if os.path.exists(mp3_path):
-            print(f"Hittade mp3-mappen: {mp3_path}")
             for folder in os.listdir(mp3_path):
                 folder_path = os.path.join(mp3_path, folder)
-                print(f"Kontrollerar mappen: {folder_path}")
                 if os.path.isdir(folder_path):
                     mp3_files = [
                         os.path.join(folder_path, f)
@@ -39,11 +37,7 @@ class DJ(commands.Cog):
                     ]
                     if mp3_files:
                         playlists[folder] = {"files": mp3_files}
-                        print(f"Lade till spellista: {folder} med filer: {mp3_files}")
-                    else:
-                        print(f"Inga MP3-filer hittades i mappen: {folder}")
-        else:
-            print(f"Mappen {mp3_path} hittades inte.")
+
 
         return playlists
 
@@ -183,12 +177,22 @@ class DJ(commands.Cog):
             await ctx.send("Boten är inte ansluten till en röstkanal.")
             return
 
-        ctx.voice_client.play(
-            discord.FFmpegPCMAudio(file),
-            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result(),
-        )
-        ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
-        ctx.voice_client.source.volume = 0.5
+        # Ensure the file path is absolute
+        file_path = os.path.abspath(file)
+        if not os.path.isfile(file_path):
+            await ctx.send(f"Filen hittades inte: {file}")
+            return
+
+        try:
+            ctx.voice_client.play(
+                discord.FFmpegPCMAudio(file_path),
+                after=lambda e: self.bot.loop.create_task(self.play_next(ctx))
+            )
+            ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
+            ctx.voice_client.source.volume = 0.5
+            await ctx.send(f"🎶 Spelar nu: **{os.path.basename(file_path)}**")
+        except Exception as e:
+            await ctx.send(f"Fel vid uppspelning av filen: {e}")
 
     async def play_song_from_url(self, ctx, url):
         """Spela en YouTube-länk."""
@@ -212,7 +216,3 @@ class DJ(commands.Cog):
         )
         ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
         ctx.voice_client.source.volume = 0.5
-
-
-async def setup(bot):
-    await bot.add_cog(DJ(bot))

@@ -6,7 +6,10 @@ class StockCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="stock")
+    @commands.command(
+        name="stock",
+        help="Fetch stock information or historical data. Usage: !stock <ticker> [attribute]. For more details, use !stockhelp."
+    )
     async def fetch_stock_info(self, ctx, ticker: str, period: str = None, interval: str = None):
         try:
             # early exit if no ticker is provided
@@ -61,7 +64,10 @@ class StockCog(commands.Cog):
             print('exception:', e)
             await ctx.send(f"An error occurred")
 
-    @commands.command(name="stockhelp")
+    @commands.command(
+        name="stockhelp",
+        help="Displays detailed instructions for the stock commands."
+    )
     async def stock_help(self, ctx):
         help_message = """
         **Stock Commands:**
