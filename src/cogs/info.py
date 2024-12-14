@@ -20,7 +20,12 @@ class Info(commands.Cog):
         !repeat - Repeat current song or playlist.
         
         **Stock:**
+        !stockhelp help with stock commands.
+        
         **pavel:**
+        
+        **Anime:**
+        !jim sends a random anime quote
         """
 
 
