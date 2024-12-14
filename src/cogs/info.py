@@ -6,7 +6,7 @@ class InfoCog(commands.Cog):
 
         self.info_text_general = """
 **Available Cogs:**
-- `anime`, `dj`, `eleven`, `hello`, `info`, `pavel`, `steam`, `stock`
+- `anime`, `dj`, `eleven`, `hello`, `info`, `pavel`, `steam`, `stock, fishing, textstorage`
 
 **Usage:**
 - `!info [category]` to get specific help.  
@@ -66,6 +66,16 @@ Example: `!info dj`
 - `!stockhelp` - View all stock-related commands.
 """
 
+        self.info_text_textstorage = """
+**Text Storage Commands:**
+- `!save_text <text>` - Save provided text into a file (overwrites existing content).
+- `!append_text <text>` - Append provided text to the file.
+- `!view_text` - View the content of the file.
+- `!clear_text` - Clear the content of the file.
+- `!bugfix <text>` - Add a bugfix note with a `[BUGFIX]` tag.
+- `!feature <text>` - Add a feature request with a `[FEATURE]` tag.
+"""
+
     @commands.command(name="info")
     async def info(self, ctx, parameter: str = None):
         if not parameter:
@@ -84,5 +94,8 @@ Example: `!info dj`
             await ctx.send(self.info_text_steam)
         elif parameter.lower() == "stock":
             await ctx.send(self.info_text_stock)
+        elif parameter.lower() == "textstorage":
+            await ctx.send(self.info_text_textstorage)
+
         else:
             await ctx.send(f"**Invalid category:** `{parameter}`\n\n{self.info_text_general}")
