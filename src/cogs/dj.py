@@ -10,9 +10,9 @@ class DJ(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.repeat = False
-        self.playlists = self.load_playlists()  # Ladda spellistor från JSON och MP3-mappen
-        self.queue = []  # Håll koll på vilka låtar som ska spelas
-        self.current_song = None  # Den låt som spelas just nu
+        self.queue = []  # Kön för låtar
+        self.current_song = None
+        self.playlists = self.load_playlists()
 
     def load_playlists(self):
         """Ladda spellistor från JSON och mapp med MP3-filer."""
@@ -25,7 +25,7 @@ class DJ(commands.Cog):
                 playlists.update(json.load(f))
 
         # Lägg till MP3-spellistor
-        mp3_path = r"C:\Users\adekl\Kodmust\Discordbot\DJ-Dmitriy-Repeatmashinsky\src\assets\mp3"
+        mp3_path = r"src\assets\mp3"
         if os.path.exists(mp3_path):
             print(f"Hittade mp3-mappen: {mp3_path}")
             for folder in os.listdir(mp3_path):
@@ -47,43 +47,44 @@ class DJ(commands.Cog):
 
         return playlists
 
-    async def play_next_song(self, ctx):
+    async def play_next(self, ctx):
         """Spela nästa låt i kön."""
         if not self.queue:
-            await ctx.send("Kön är tom. Ingen låt att spela.")
             self.current_song = None
+            await ctx.send("Kön är tom. Lägg till fler låtar med `!play`.")
             return
 
         self.current_song = self.queue.pop(0)
-
-        if os.path.isfile(self.current_song):  # Spela MP3-fil
+        if os.path.isfile(self.current_song):  # MP3-fil
             await self.play_song_from_file(ctx, self.current_song)
-        else:  # Spela YouTube-länk
+        else:  # YouTube-länk
             await self.play_song_from_url(ctx, self.current_song)
 
     @commands.command()
     async def play(self, ctx, *args):
-        """
-        Spela musik från en YouTube-länk eller spellista.
-        - `!play [länk]` för att spela musik från en YouTube-länk.
-        - `!play spellista [namn]` för att spela upp en spellista.
-        """
+        """Spela musik från en länk eller spellista."""
         if len(args) == 0:
             await ctx.send("Felaktigt kommando. Ange en länk eller spellista.")
             return
 
         if args[0].lower() == "spellista":
             if len(args) < 2:
-                await ctx.send("Ange namnet på en spellista, t.ex. `!play spellista Djungeltrubaduren`.")
+                await ctx.send("Ange namnet på en spellista, t.ex. `!play spellista Favoriter`.")
                 return
 
-            playlist_id = " ".join(args[1:])  # Kombinera argumenten efter "spellista" som spellistans namn
+            playlist_id = " ".join(args[1:])
             playlist = self.playlists.get(playlist_id)
 
             if not playlist:
-                await ctx.send(f"Spellistan {playlist_id} finns inte.")
+                await ctx.send(f"Spellistan `{playlist_id}` finns inte.")
                 return
 
+            # Lägg till spellistans låtar i kön
+            self.queue.extend(playlist.get("urls", []))
+            self.queue.extend(playlist.get("files", []))
+            await ctx.send(f"Lade till {len(playlist.get('urls', [])) + len(playlist.get('files', []))} låtar från spellistan `{playlist_id}` till kön.")
+
+            # Anslut och spela om inget redan spelas
             if not ctx.voice_client:
                 if not ctx.author.voice:
                     await ctx.send("Du måste vara i en röstkanal för att spela musik.")
@@ -91,18 +92,15 @@ class DJ(commands.Cog):
                 channel = ctx.author.voice.channel
                 await channel.connect()
 
-            # Lägg till spellistans låtar i kön
-            self.queue.extend(playlist.get("urls", []))
-            self.queue.extend(playlist.get("files", []))
-            await ctx.send(f"Lade till {len(self.queue)} låtar från spellistan {playlist_id} i kön.")
-
-            # Spela upp om ingen låt spelas
             if not ctx.voice_client.is_playing():
-                await self.play_next_song(ctx)
+                await self.play_next(ctx)
             return
 
-        # Om det är en länk, spela låten
+        # Spela en enskild länk
         url = args[0]
+        self.queue.append(url)
+        await ctx.send(f"Lade till låten i kön: {url}")
+
         if not ctx.voice_client:
             if not ctx.author.voice:
                 await ctx.send("Du måste vara i en röstkanal för att spela musik.")
@@ -110,47 +108,97 @@ class DJ(commands.Cog):
             channel = ctx.author.voice.channel
             await channel.connect()
 
-        self.queue.append(url)
-        await ctx.send(f"Lade till låten i kön: {url}")
-
-        # Spela upp om ingen låt spelas
         if not ctx.voice_client.is_playing():
-            await self.play_next_song(ctx)
+            await self.play_next(ctx)
 
     @commands.command()
     async def byt(self, ctx):
         """Hoppa till nästa låt."""
         if ctx.voice_client and ctx.voice_client.is_playing():
             ctx.voice_client.stop()  # Stoppa nuvarande låt
-        await self.play_next_song(ctx)
+        await self.play_next(ctx)
+
+    @commands.command()
+    async def stop(self, ctx):
+        """Stoppa musiken."""
+        if ctx.voice_client and ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
+            self.queue.clear()
+            self.current_song = None
+            await ctx.send("Musiken har stoppats och kön har rensats.")
+        else:
+            await ctx.send("Det spelas ingen musik just nu.")
+
+    @commands.command()
+    async def leave(self, ctx):
+        """Koppla bort boten från röstkanalen."""
+        if ctx.voice_client:
+            await ctx.voice_client.disconnect()
+            await ctx.send("Boten har kopplats bort från röstkanalen.")
+        else:
+            await ctx.send("Boten är inte ansluten till en röstkanal.")
+
+    @commands.command()
+    async def repeat(self, ctx):
+        """Aktivera/inaktivera repetera-läge."""
+        self.repeat = not self.repeat
+        status = "aktiverat" if self.repeat else "avstängt"
+        await ctx.send(f"Repetera-läge är nu {status}.")
+
+    @commands.command()
+    async def info(self, ctx, playlist_id: str):
+        """Visa info om en spellista."""
+        playlist = self.playlists.get(playlist_id)
+        if not playlist:
+            await ctx.send(f"Spellistan `{playlist_id}` finns inte.")
+            return
+
+        urls = playlist.get("urls", [])
+        files = playlist.get("files", [])
+        response = f"**Spellista: {playlist_id}**\n"
+
+        if urls:
+            response += "YouTube-länkar:\n" + "\n".join(f"- {url}" for url in urls)
+        if files:
+            response += "Lokala MP3-filer:\n" + "\n".join(f"- {os.path.basename(f)}" for f in files)
+
+        await ctx.send(response)
+
+    @commands.command()
+    async def spellistor(self, ctx):
+        """Lista alla spellistor."""
+        if not self.playlists:
+            await ctx.send("Det finns inga tillgängliga spellistor.")
+            return
+
+        response = "**Tillgängliga spellistor:**\n"
+        for name in self.playlists.keys():
+            response += f"- {name}\n"
+
+        await ctx.send(response)
 
     async def play_song_from_file(self, ctx, file):
-        """Spela en låt från en lokal MP3-fil."""
-        voice_client = ctx.voice_client
-        if not voice_client:
+        """Spela en MP3-fil."""
+        if not ctx.voice_client:
             await ctx.send("Boten är inte ansluten till en röstkanal.")
             return
 
-        if not os.path.isfile(file):
-            await ctx.send(f"Filen {file} finns inte.")
-            return
-
-        try:
-            voice_client.play(discord.FFmpegPCMAudio(file), after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.bot.loop).result())
-            voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
-            voice_client.source.volume = 0.5
-        except Exception as e:
-            await ctx.send(f"Ett fel inträffade under uppspelningen av filen: {e}")
+        ctx.voice_client.play(
+            discord.FFmpegPCMAudio(file),
+            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result(),
+        )
+        ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
+        ctx.voice_client.source.volume = 0.5
 
     async def play_song_from_url(self, ctx, url):
-        """Spela en låt från en YouTube-länk."""
+        """Spela en YouTube-länk."""
         ydl_opts = {'format': 'bestaudio', 'quiet': True}
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 audio_url = info['url']
         except Exception as e:
-            await ctx.send(f"Misslyckades att hämta ljud från URL: {url}. Fel: {e}")
+            await ctx.send(f"Fel vid hämtning av URL: {e}")
             return
 
         ffmpeg_options = {
@@ -158,17 +206,12 @@ class DJ(commands.Cog):
             'options': '-vn',
         }
 
-        voice_client = ctx.voice_client
-        if not voice_client:
-            await ctx.send("Boten är inte ansluten till en röstkanal.")
-            return
-
-        try:
-            voice_client.play(discord.FFmpegPCMAudio(audio_url, **ffmpeg_options), after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next_song(ctx), self.bot.loop).result())
-            voice_client.source = discord.PCMVolumeTransformer(voice_client.source)
-            voice_client.source.volume = 0.5
-        except Exception as e:
-            await ctx.send(f"Ett fel inträffade under uppspelningen: {e}")
+        ctx.voice_client.play(
+            discord.FFmpegPCMAudio(audio_url, **ffmpeg_options),
+            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result(),
+        )
+        ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
+        ctx.voice_client.source.volume = 0.5
 
 
 async def setup(bot):
