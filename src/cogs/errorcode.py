@@ -2,9 +2,10 @@ from discord.ext import commands
 
 
 class ErrorcodeCog(commands.Cog):
+    error_code_list = None
+
     def __init__(self, bot):
         self.bot = bot
-        self.error_code_list = []
 
     @classmethod
     def add_error(cls, message):

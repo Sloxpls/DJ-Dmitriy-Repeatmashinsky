@@ -1,12 +1,9 @@
 {
-   "1": {
-    "info": "Djungeltrubaduren.",
+   "Djungeltrubaduren": {
      "path": "assets/mp3/Djungeltrubaduren"
    },
-
-  "2": {
-    "info": "youtube.",
-    "urls": [
+  "youtube":
+    [
       "https://www.youtube.com/watch?v=2WNnuYRdEgs",
       "https://www.youtube.com/watch?v=Axq1FHwFMrQ",
       "https://www.youtube.com/watch?v=2WNnuYRdEgs",
@@ -16,6 +13,4 @@
       "https://www.youtube.com/watch?v=2WNnuYRdEgs",
       "https://www.youtube.com/watch?v=Axq1FHwFMrQ"
     ]
-  }
-
 }

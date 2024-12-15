@@ -4,9 +4,6 @@ import yt_dlp
 import os
 import json
 import asyncio
-from errorcodecog import ErrorcodeCog
-
-
 
 class DjCog(commands.Cog):
     def __init__(self, bot):
@@ -46,12 +43,12 @@ class DjCog(commands.Cog):
     @commands.command()
     async def play(self, ctx, *args):
         """Play a song or playlist."""
-        if len(args) == 0:
-            ErrorcodeCog.handle_value_error("No input provided. Provide a playlist name or YouTube URL.")
+        if not args:
+            print("No input provided. Provide a playlist name or YouTube URL.")
             return
 
         if not ctx.author.voice:
-            ErrorcodeCog.handle_value_error("You are not in a voice channel.")
+            print("User is not in a voice channel.")
             return
 
         channel = ctx.author.voice.channel
@@ -61,20 +58,44 @@ class DjCog(commands.Cog):
 
         if args[0] == "playlist":
             if len(args) < 2:
-                ErrorcodeCog.handle_value_error("Playlist name not specified.")
+                print("Playlist name not specified.")
                 return
 
             playlist_name = args[1]
+
             if playlist_name not in self.playlists:
-                ErrorcodeCog.handle_value_error(f"Playlist '{playlist_name}' not found.")
+                print(f"Playlist '{playlist_name}' not found.")
+                print(f"Available playlists: {self.playlists.keys()}")
                 return
 
-            for song in self.playlists[playlist_name]:
-                self.queue.append((song, 1))
+            playlist_data = self.playlists[playlist_name]
+
+            if isinstance(playlist_data, dict) and "path" in playlist_data:
+                path = playlist_data["path"]
+                if os.path.isdir(path):
+                    for file in os.listdir(path):
+                        if file.endswith(".mp3"):
+                            self.queue.append((os.path.join(path, file), 0))
+                else:
+                    print(f"Directory '{path}' not found.")
+                    return
+
+            elif isinstance(playlist_data, list):
+                for song in playlist_data:
+                    self.queue.append((song, 1))
+            else:
+                print(f"Invalid format for playlist '{playlist_name}'.")
+                return
+
+            print(f"Added playlist '{playlist_name}' to the queue.")
+
         elif args[0].startswith("http"):
             self.queue.append((args[0], 1))
+            print("Added YouTube URL to the queue.")
+
         else:
-            ErrorcodeCog.handle_value_error("Invalid input. Use a YouTube URL or 'playlist <name>'.")
+            print("Invalid input. Use a YouTube URL or 'playlist <name>'.")
+            return
 
         if not ctx.voice_client.is_playing():
             await self.play_next(ctx)
@@ -94,7 +115,8 @@ class DjCog(commands.Cog):
             self.queue.clear()
             self.current_song = None
         else:
-            ErrorcodeCog.handle_value_error("Nothing is playing to stop.")
+            pass
+            #ErrorcodeCog.handle_value_error("Nothing is playing to stop.")
 
     @commands.command()
     async def leave(self, ctx):
@@ -104,7 +126,8 @@ class DjCog(commands.Cog):
             self.queue.clear()
             self.current_song = None
         else:
-            ErrorcodeCog.handle_value_error("Bot is not connected to any voice channel.")
+            pass
+            #ErrorcodeCog.handle_value_error("Bot is not connected to any voice channel.")
 
     @commands.command()
     async def repeat(self, ctx):
@@ -115,24 +138,26 @@ class DjCog(commands.Cog):
     async def info(self, ctx, *args):
         """Show information about playlists or current queue."""
         if len(args) == 0:
-            ErrorcodeCog.handle_value_error("Specify 'playlist' or 'queue'.")
+            #ErrorcodeCog.handle_value_error("Specify 'playlist' or 'queue'.")
             return
 
         if args[0] == "playlist":
             if not self.playlists:
-                ErrorcodeCog.handle_value_error("No playlists available.")
+                #ErrorcodeCog.handle_value_error("No playlists available.")
                 return
+            await ctx.send(self.playlists)
         elif args[0] == "queue":
             if not self.queue:
-                ErrorcodeCog.handle_value_error("The queue is empty.")
+                #ErrorcodeCog.handle_value_error("The queue is empty.")
                 return
         else:
-            ErrorcodeCog.handle_value_error("Invalid argument. Use 'playlist' or 'queue'.")
+            pass
+            #ErrorcodeCog.handle_value_error("Invalid argument. Use 'playlist' or 'queue'.")
 
     async def play_song_from_file(self, ctx, file):
         """Play a song from a local file."""
         if not os.path.isfile(file):
-            ErrorcodeCog.handle_value_error(f"File not found: {file}")
+            #ErrorcodeCog.handle_value_error(f"File not found: {file}")
             return
 
         try:
@@ -143,7 +168,8 @@ class DjCog(commands.Cog):
             ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
             ctx.voice_client.source.volume = 0.5
         except Exception as e:
-            ErrorcodeCog.handle_system_error(f"Error playing file: {e}")
+            pass
+            #ErrorcodeCog.handle_system_error(f"Error playing file: {e}")
 
     async def play_song_from_url(self, ctx, url):
         """Play a YouTube song."""
@@ -165,4 +191,5 @@ class DjCog(commands.Cog):
             ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
             ctx.voice_client.source.volume = 0.5
         except Exception as e:
-            ErrorcodeCog.handle_system_error(f"Error fetching YouTube URL: {e}")
+            pass
+            #ErrorcodeCog.handle_system_error(f"Error fetching YouTube URL: {e}")
