@@ -8,7 +8,7 @@ class AnimeCog(commands.Cog):
         self.bot = bot
         self.api_url = "https://animechan.io/api/v1/quotes/random"
 
-    @commands.command(name="jim")
+    @commands.command(name="jim",help="Usage: !jim, give anime quote")
     async def anime_quote(self, ctx):
         try:
             async with aiohttp.ClientSession() as session:

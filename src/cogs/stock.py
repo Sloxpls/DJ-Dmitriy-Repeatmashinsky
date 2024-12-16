@@ -8,7 +8,7 @@ class StockCog(commands.Cog):
 
     @commands.command(
         name="stock",
-        help="Fetch stock information or historical data. Usage: !stock <ticker> [attribute]. For more details, use !stockhelp."
+        help=" Usage: !stock <ticker> [attribute]"
     )
     async def fetch_stock_info(self, ctx, ticker: str, period: str = None, interval: str = None):
         try:
@@ -66,7 +66,7 @@ class StockCog(commands.Cog):
 
     @commands.command(
         name="stockhelp",
-        help="Displays detailed instructions for the stock commands."
+        help="Usage: !stockhelp."
     )
     async def stock_help(self, ctx):
         help_message = """

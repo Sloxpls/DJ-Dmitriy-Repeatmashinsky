@@ -25,7 +25,7 @@ class FishingCog(commands.Cog):
                         if elapsed_time >= 1800:
                             text_channel = discord.utils.get(guild.text_channels, name="majsmannen")
                             if text_channel:
-                                await text_channel.send(f"🎣 **{user.display_name}** har fiskt ensam i {vc.name} i 30 minuter utan napp!")
+                                await text_channel.send(f"**{user.display_name}** har fiskt ensam i {vc.name} i 30 minuter utan napp!")
                             self.alone_users.pop(user.id)
                 else:
                     for member in members:

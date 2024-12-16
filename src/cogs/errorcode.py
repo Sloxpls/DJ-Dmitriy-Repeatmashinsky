@@ -23,7 +23,7 @@ class ErrorcodeCog(commands.Cog):
         except ValueError as e:
             print(f"Caught an exception: {e}")
 
-    @commands.command(name="error", help="Displays the last 10 error codes.")
+    @commands.command(name="error", help="usage : !error, Displays error codes.")
     async def error_code(self, ctx):
         """Command to display the last 10 errors."""
         if not self.error_code_list:
@@ -31,4 +31,3 @@ class ErrorcodeCog(commands.Cog):
         else:
             formatted_errors = "\n".join(f"{idx + 1}. {err}" for idx, err in enumerate(self.error_code_list))
             await ctx.send(f"**Last 10 Error Codes:**\n{formatted_errors}")
-

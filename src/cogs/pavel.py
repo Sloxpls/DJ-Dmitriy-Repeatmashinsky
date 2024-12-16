@@ -27,17 +27,17 @@ class PavelCog(commands.Cog):
         self.last_time = time.time()
         return False
 
-    @commands.command(help="Activates Pavel mode. Pavel will respond to events and commands. Usage: !pavel Not done")
+    @commands.command(help="Usage: !pavel, pavel online")
     async def pavel(self, ctx):
         self.pavel_mode = True
         await ctx.send("Pavel online")
 
-    @commands.command(help="Deactivates Pavel mode. Pavel will no longer respond to commands or events. Usage: !disable_pavel")
+    @commands.command(help="Usage: !disable_pavel")
     async def disable_pavel(self, ctx):
         self.pavel_mode = False
         await ctx.send("Pavel offline")
 
-    @commands.command(aliases=["peter"], help="Sends a random picture from the 'random' folder when Pavel mode is active. Usage: !pictureAliases: !peter")
+    @commands.command(aliases=["peter"], help="Usage : !picture,  Aliases: !peter")
     async def picture(self, ctx):
         if self.pavel_mode:
 

@@ -13,7 +13,7 @@ class SteamCog(commands.Cog):
             "Peter": "76561198173652857"
         }
 
-    @commands.command(name="steam_status", help="Fetches the current Steam status of a user. Usage: !steam_status [name_or_id]")
+    @commands.command(name="steam_status", help="Usage: !steam_status [name_or_id]")
 
     async def get_steam_status(self, ctx, name_or_id: str):
 
