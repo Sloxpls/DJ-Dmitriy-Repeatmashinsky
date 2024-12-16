@@ -1,10 +1,10 @@
 import aiohttp
-import requests
 import discord
-from discord.ext import commands
 import asyncio
 from discord import FFmpegPCMAudio
 import os
+from langchain_ollama import OllamaLLM
+from discord.ext import commands
 
 
 class ElevenCog(commands.Cog):
@@ -18,6 +18,7 @@ class ElevenCog(commands.Cog):
             "waman": "XrExE9yKIg1WjnnlVkGX",
             "man": "29vD33N1CtxCmqQRPOHJ"
         }
+        self.model = OllamaLLM(model="mistral")
 
     async def fetch_tts_audio(self, text: str, voice_id: str) -> str:
 
@@ -81,3 +82,30 @@ class ElevenCog(commands.Cog):
 
         finally:
             await vc.disconnect()
+
+    @commands.command(name="ollama")
+    async def ollama_tts(self, ctx, voice: str = None, *, text: str):
+        if not ctx.author.voice:
+            await ctx.send("You need to be in a voice channel to use this command!")
+            return
+
+        voice_id = self.voice_map.get(voice, self.voice_id)
+        response = self.model.invoke(input=text)
+
+        voice_channel = ctx.author.voice.channel
+        vc = await voice_channel.connect()
+
+        try:
+            audio_path = await self.fetch_tts_audio(response, voice_id)
+            vc.play(FFmpegPCMAudio(audio_path), after=lambda e: print(f"Finished playing: {text}"))
+            while vc.is_playing():
+                await asyncio.sleep(1)
+
+        finally:
+            await vc.disconnect()
+            try:
+                os.remove(audio_path)  # Remove the temporary audio file
+            except Exception as e:
+                print(f"Error cleaning up audio file: {e}")
+
+
