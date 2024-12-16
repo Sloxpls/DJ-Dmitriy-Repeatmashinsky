@@ -27,19 +27,25 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name="Программирский"))
     print(f"Logged in as {bot.user}")
 
-    cogs_dir = "./cogs"
+    # Dynamically find the absolute path to 'cogs' directory
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # Path to app.py
+    cogs_dir = os.path.join(base_dir, "cogs")
+
+    # Load cogs
     for filename in os.listdir(cogs_dir):
         if filename.endswith(".py"):
             cog_name = filename[:-3]
             module = importlib.import_module(f"src.cogs.{cog_name}")
             cog_class = getattr(module, f"{cog_name.capitalize()}Cog")
 
-            # if cog requires api key
+            # Check if the cog requires an API key
             if cog_name in cog_api_keys:
                 cog = cog_class(bot, cog_api_keys[cog_name])
             else:
                 cog = cog_class(bot)
+
             await bot.add_cog(cog)
+            print(f"Loaded cog: {cog_name}")
 
 @bot.command()
 async def d(ctx):
