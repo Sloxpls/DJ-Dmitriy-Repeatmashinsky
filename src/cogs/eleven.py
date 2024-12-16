@@ -46,7 +46,7 @@ class ElevenCog(commands.Cog):
                     f.write(await response.read())
                 return audio_path
 
-    @commands.command(name="tts")
+    @commands.command(name="tts", help=" Usage: !tts [voice] [text]")
     async def tts(self, ctx, voice: str = None, *, text: str):
         if not ctx.author.voice:
             await ctx.send("You need to be in a voice channel to use this command!")
@@ -71,7 +71,7 @@ class ElevenCog(commands.Cog):
             except Exception as e:
                 print(f"Error cleaning up audio file: {e}")
 
-    @commands.command(name="p")
+    @commands.command(name="p",help="Usage: !p [filename]")
     async def play(self, ctx, file: str):
         voice_channel = ctx.author.voice.channel
         vc = await voice_channel.connect()

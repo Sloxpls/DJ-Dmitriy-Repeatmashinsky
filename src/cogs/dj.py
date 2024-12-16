@@ -4,195 +4,250 @@ import yt_dlp
 import os
 import json
 import asyncio
+from src.cogs.errorcode import ErrorcodeCog
 
 class DjCog(commands.Cog):
     def __init__(self, bot):
+        self.playlists = None
         self.bot = bot
         self.repeat = False
         self.queue = []
         self.current_song = None
-        self.playlists = self.load_playlists()
+        self.json_path = "./assets/playlists.json"
+        self.load_playlists()
 
     def load_playlists(self):
-        playlists = {}
-
-        json_path = "./assets/playlists.json"
-        if os.path.exists(json_path):
-            with open(json_path, "r", encoding="utf-8") as f:
-                playlists.update(json.load(f))
-
-        mp3_path = r"./assets/mp3"
-        if os.path.exists(mp3_path):
-            print(f"Hittade mp3-mappen: {mp3_path}")
-            for folder in os.listdir(mp3_path):
-                folder_path = os.path.join(mp3_path, folder)
-                print(f"Kontrollerar mappen: {folder_path}")
-                if os.path.isdir(folder_path):
-                    mp3_files = [
-                        os.path.join(folder_path, f)
-                        for f in os.listdir(folder_path)
-                        if f.endswith(".mp3")
-                    ]
-                    if mp3_files:
-                        playlists[folder] = {"files": mp3_files}
-                        print(f"Lade till spellista: {folder} med filer: {mp3_files}")
-                    else:
-                        print(f"Inga MP3-filer hittades i mappen: {folder}")
-        else:
-            print(f"Mappen {mp3_path} hittades inte.")
-
-        return playlists
+        """Load playlists from the JSON file."""
+        try:
+            with open(self.json_path, "r", encoding="utf-16") as f:
+                self.playlists = json.load(f)
+                if not isinstance(self.playlists, dict):
+                    raise ValueError("JSON file does not contain a valid dictionary.")
+        except (FileNotFoundError, json.JSONDecodeError, ValueError):
+            self.playlists = {}
 
     async def play_next(self, ctx):
+        """Play the next song in the queue."""
+        if self.repeat and self.current_song:
+            self.queue.insert(0, self.current_song)
+
         if not self.queue:
             self.current_song = None
-            await ctx.send("Kön är tom. Lägg till fler låtar med `!play`.")
             return
 
         self.current_song = self.queue.pop(0)
-        if os.path.isfile(self.current_song):  # MP3-fil
-            await self.play_song_from_file(ctx, self.current_song)
-        else:
-            await self.play_song_from_url(ctx, self.current_song)
+        song, song_type = self.current_song
 
-    @commands.command()
+        if song_type == 0:
+            await self.play_song_from_file(ctx, song)
+        elif song_type == 1:
+            await self.play_song_from_url(ctx, song)
+
+    @commands.command(help="Usage 1: !play <url> 2: !play playlist <name> ")
     async def play(self, ctx, *args):
-        if len(args) == 0:
-            await ctx.send("Felaktigt kommando. Ange en länk eller spellista.")
+        """Play a song or playlist."""
+        if not args:
+            ErrorcodeCog.add_error("No input provided. Provide a playlist name or YouTube URL.")
             return
 
-        if args[0].lower() == "spellista":
-            if len(args) < 2:
-                await ctx.send("Ange namnet på en spellista, t.ex. `!play spellista Favoriter`.")
-                return
-
-            playlist_id = " ".join(args[1:])
-            playlist = self.playlists.get(playlist_id)
-
-            if not playlist:
-                await ctx.send(f"Spellistan `{playlist_id}` finns inte.")
-                return
-
-            self.queue.extend(playlist.get("urls", []))
-            self.queue.extend(playlist.get("files", []))
-            await ctx.send(f"Lade till {len(playlist.get('urls', [])) + len(playlist.get('files', []))} låtar från spellistan `{playlist_id}` till kön.")
-
-            if not ctx.voice_client:
-                if not ctx.author.voice:
-                    await ctx.send("Du måste vara i en röstkanal för att spela musik.")
-                    return
-                channel = ctx.author.voice.channel
-                await channel.connect()
-
-            if not ctx.voice_client.is_playing():
-                await self.play_next(ctx)
+        if not ctx.author.voice:
+            print("User is not in a voice channel.")
             return
 
-        url = args[0]
-        self.queue.append(url)
-        await ctx.send(f"Lade till låten i kön: {url}")
+        channel = ctx.author.voice.channel
 
         if not ctx.voice_client:
-            if not ctx.author.voice:
-                await ctx.send("Du måste vara i en röstkanal för att spela musik.")
-                return
-            channel = ctx.author.voice.channel
             await channel.connect()
+
+        if args[0] == "playlist":
+            if len(args) < 2:
+                print("Playlist name not specified.")
+                return
+
+            playlist_name = args[1]
+
+            if playlist_name not in self.playlists:
+                ErrorcodeCog.add_error(f"Playlist '{playlist_name}' not found.")
+                return
+
+            playlist_data = self.playlists[playlist_name]
+
+            if isinstance(playlist_data, dict) and "path" in playlist_data:
+                path = playlist_data["path"]
+                if os.path.isdir(path):
+                    for file in os.listdir(path):
+                        if file.endswith(".mp3"):
+                            self.queue.append((os.path.join(path, file), 0))
+                else:
+                    ErrorcodeCog.add_error(f"Directory '{path}' not found.")
+                    return
+
+            elif isinstance(playlist_data, list):
+                for song in playlist_data:
+                    self.queue.append((song, 1))
+            else:
+                ErrorcodeCog.add_error(f"Invalid format for playlist '{playlist_name}'.")
+                return
+
+            print(f"Added playlist '{playlist_name}' to the queue.")
+
+        elif args[0].startswith("http"):
+            self.queue.append((args[0], 1))
+            print("Added YouTube URL to the queue.")
+
+        else:
+            ErrorcodeCog.add_error("Invalid input. Use a YouTube URL or 'playlist <name>'.")
+            return
 
         if not ctx.voice_client.is_playing():
             await self.play_next(ctx)
 
-    @commands.command()
+    @commands.command(help="Usage: !next, skips to next song ")
     async def next(self, ctx):
+        """Skip to the next song."""
         if ctx.voice_client and ctx.voice_client.is_playing():
-            ctx.voice_client.stop()  # Stoppa nuvarande låt
+            ctx.voice_client.stop()
         await self.play_next(ctx)
 
-    @commands.command()
+    @commands.command(help="Usage: !stop, stop playback ")
     async def stop(self, ctx):
-        if ctx.voice_client and ctx.voice_client.is_playing():
+        """Stop playback and clear the queue."""
+        if ctx.voice_client:
             ctx.voice_client.stop()
             self.queue.clear()
             self.current_song = None
-            await ctx.send("Musiken har stoppats och kön har rensats.")
         else:
-            await ctx.send("Det spelas ingen musik just nu.")
+            pass
+            ErrorcodeCog.add_error("Nothing is playing to stop.")
 
-    @commands.command()
+    @commands.command(help="Usage: !leave, leaves voice",)
     async def leave(self, ctx):
+        """Disconnect from the voice channel."""
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
-            await ctx.send("Boten har kopplats bort från röstkanalen.")
+            self.queue.clear()
+            self.current_song = None
         else:
-            await ctx.send("Boten är inte ansluten till en röstkanal.")
+            pass
+            ErrorcodeCog.add_error("Bot is not connected to any voice channel.")
 
-    @commands.command()
+    @commands.command(help="Usage: !repeat, toggle for repeat songs")
     async def repeat(self, ctx):
+        """Toggle repeat mode."""
         self.repeat = not self.repeat
-        status = "aktiverat" if self.repeat else "avstängt"
-        await ctx.send(f"Repetera-läge är nu {status}.")
 
-    @commands.command()
-    async def musicinfo(self, ctx, playlist_id: str):
-        playlist = self.playlists.get(playlist_id)
-        if not playlist:
-            await ctx.send(f"Spellistan `{playlist_id}` finns inte.")
+    @commands.command(help="Usage: !info <playlist or queue>")
+    async def info(self, ctx, *args):
+        """Show information about playlists or the current queue."""
+        if not args:
+            await ctx.send("Error: Specify 'playlist' or 'queue'.")
             return
 
-        urls = playlist.get("urls", [])
-        files = playlist.get("files", [])
-        response = f"**Spellista: {playlist_id}**\n"
+        option = args[0].lower()
 
-        if urls:
-            response += "YouTube-länkar:\n" + "\n".join(f"- {url}" for url in urls)
-        if files:
-            response += "Lokala MP3-filer:\n" + "\n".join(f"- {os.path.basename(f)}" for f in files)
+        if option == "playlist":
+            if not self.playlists:
+                await ctx.send("No playlists available.")
+                return
+            await ctx.send(f"Available playlists: {self.playlists}")
+        elif option == "queue":
+            if not self.queue:
+                await ctx.send("The queue is currently empty.")
+                return
+            await ctx.send(f"Current queue: {self.queue}")
+        else:
+            ErrorcodeCog.add_error("Invalid argument. Use 'playlist' or 'queue'.")
 
-        await ctx.send(response)
+    def save_playlists(self):
+        """Save playlists to the JSON file."""
+        with open(self.json_path, "w", encoding="utf-16") as f:
+            json.dump(self.playlists, f, indent=4)
 
-    @commands.command()
-    async def spellistor(self, ctx):
-        if not self.playlists:
-            await ctx.send("Det finns inga tillgängliga spellistor.")
+    @commands.command(name="playlist", help="!playlist 'add <name> <path/link>' or 'rm <name>'")
+    async def playlist_funk(self, ctx, *args):
+        """Manage playlists: add or remove."""
+        if not args:
+            await ctx.send("No argument provided. Use 'add <name> <path/link>' or 'rm <name>'.")
             return
 
-        response = "**Tillgängliga spellistor:**\n"
-        for name in self.playlists.keys():
-            response += f"- {name}\n"
+        command = args[0].lower()
 
-        await ctx.send(response)
+        if command == "add":
+            if len(args) < 3:
+                await ctx.send("Usage: `playlist add <name> <path/link>`")
+                return
+
+            playlist_name = args[1]
+            playlist_path = args[2]
+
+            if playlist_name not in self.playlists:
+                self.playlists[playlist_name] = []
+
+            if playlist_path.startswith("http"):
+                self.playlists[playlist_name].append(playlist_path)
+                self.save_playlists()
+                await ctx.send(f"Playlist '{playlist_name}' has been updated with a new link.")
+
+            elif os.path.exists(playlist_path):
+                self.playlists[playlist_name] = {"path": os.path.abspath(playlist_path)}
+                self.save_playlists()
+                await ctx.send(f"Playlist '{playlist_name}' has been added with a local path.")
+            else:
+                await ctx.send(f"Invalid path or link: '{playlist_path}'. Path does not exist.")
+
+        elif command == "rm":
+            if len(args) < 2:
+                await ctx.send("Usage: `playlist rm <name>`")
+                return
+
+            playlist_name = args[1]
+            if playlist_name in self.playlists:
+                del self.playlists[playlist_name]
+                self.save_playlists()
+                await ctx.send(f"Playlist '{playlist_name}' has been removed.")
+            else:
+                await ctx.send(f"Playlist '{playlist_name}' not found.")
+
+        # Unknown command
+        else:
+            await ctx.send("Unknown command. Use `add` to add a playlist or `rm` to remove one.")
 
     async def play_song_from_file(self, ctx, file):
-        if not ctx.voice_client:
-            await ctx.send("Boten är inte ansluten till en röstkanal.")
+        """Play a song from a local file."""
+        if not os.path.isfile(file):
+            ErrorcodeCog.handle_value_error(f"File not found: {file}")
             return
 
-        ctx.voice_client.play(
-            discord.FFmpegPCMAudio(file),
-            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result(),
-        )
-        ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
-        ctx.voice_client.source.volume = 0.5
+        try:
+            ctx.voice_client.play(
+                discord.FFmpegPCMAudio(file),
+                after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result()
+            )
+            ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
+            ctx.voice_client.source.volume = 0.5
+        except Exception as e:
+            pass
+            ErrorcodeCog.add_error(f"Error playing file: {e}")
 
     async def play_song_from_url(self, ctx, url):
-        ydl_opts = {'format': 'bestaudio', 'quiet': True}
+        """Play a YouTube song."""
+        ydl_opts = {"format": "bestaudio", "quiet": True}
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                audio_url = info['url']
+                audio_url = info["url"]
+
+            ffmpeg_options = {
+                "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+                "options": "-vn"
+            }
+
+            ctx.voice_client.play(
+                discord.FFmpegPCMAudio(audio_url, **ffmpeg_options),
+                after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result()
+            )
+            ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
+            ctx.voice_client.source.volume = 0.5
         except Exception as e:
-            await ctx.send(f"Fel vid hämtning av URL: {e}")
-            return
-
-        ffmpeg_options = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn',
-        }
-
-        ctx.voice_client.play(
-            discord.FFmpegPCMAudio(audio_url, **ffmpeg_options),
-            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop).result(),
-        )
-        ctx.voice_client.source = discord.PCMVolumeTransformer(ctx.voice_client.source)
-        ctx.voice_client.source.volume = 0.5
-
+            pass
+            ErrorcodeCog.add_error(f"Error fetching YouTube URL: {e}")

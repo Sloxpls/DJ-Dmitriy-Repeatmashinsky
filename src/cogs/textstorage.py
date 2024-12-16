@@ -11,19 +11,7 @@ class TextstorageCog(commands.Cog):
             with open(self.file_path, "w") as file:
                 file.write("")
 
-    @commands.command(name="save_text")
-    async def save_text(self, ctx, *, text: str):
-        with open(self.file_path, "w") as file:
-            file.write(text)
-        await ctx.send("Text saved successfully.")
-
-    @commands.command(name="append_text")
-    async def append_text(self, ctx, *, text: str):
-        with open(self.file_path, "a") as file:
-            file.write(f"{text}\n")
-        await ctx.send("Text appended successfully.")
-
-    @commands.command(name="view_text")
+    @commands.command(name="view_text",help="Usage:!view_text ")
     async def view_text(self, ctx):
         if os.path.exists(self.file_path):
             with open(self.file_path, "r") as file:
@@ -35,20 +23,20 @@ class TextstorageCog(commands.Cog):
         else:
             await ctx.send("No text file found.")
 
-    @commands.command(name="clear_text")
+    @commands.command(name="clear_text",help="Usage:!clear_text")
     async def clear_text(self, ctx):
         with open(self.file_path, "w") as file:
             file.write("")
         await ctx.send("Text file cleared.")
 
-    @commands.command(name="bugfix")
+    @commands.command(name="bugfix",help="Usage:!bugfix <text>")
     async def bugfix(self, ctx, *, text: str):
         note = f"[BUGFIX] {text}"
         with open(self.file_path, "a") as file:
             file.write(f"{note}\n")
         await ctx.send("Bugfix note added.")
 
-    @commands.command(name="feature")
+    @commands.command(name="feature",help="Usage:!feature <text>")
     async def feature(self, ctx, *, text: str):
         note = f"[FEATURE] {text}"
         with open(self.file_path, "a") as file:

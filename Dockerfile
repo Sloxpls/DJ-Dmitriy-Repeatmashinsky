@@ -1,21 +1,22 @@
-# Use the official Python slim image as the base image
-FROM python:3.9-slim
+# Use the official lightweight Python image
+FROM python:3.11-slim
 
-# Set the working directory inside the container to /app
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the 'src' folder content into the /app directory in the container
-COPY src/ /app/
+# Copy requirements.txt to the container
+COPY requirements.txt .
 
-# Update the package list and install required packages
-# Install ffmpeg and python3-pip, then clean up apt cache to keep the image size small
+# Install required system dependencies and Python dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies from requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Set the command to run your bot script
-CMD ["python3", "bot.py"]
+# Copy the source code into the container
+COPY src/ /app/src/
+
+
+CMD ["python3", "/app/src/app.py"]
