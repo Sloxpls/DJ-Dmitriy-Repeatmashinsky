@@ -36,7 +36,7 @@ class OllamaCog(commands.Cog):
         voice_channel = ctx.author.voice.channel
 
         try:
-            audio_file = self.tts.run(text, "response.wav")
+            audio_file = await self.tts.run(text, "response.wav")
             if not audio_file:
                 await ctx.send("Failed to generate audio")
                 return

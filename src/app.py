@@ -5,6 +5,9 @@ import importlib
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from pymongo import MongoClient
+
+from src.cogs.blackjack import BlackjackCog
 
 # Add the '/app' directory to the module search path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -13,16 +16,18 @@ load_dotenv()
 
 ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
+MONGO_URI = os.getenv("MONGO_URI")
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
-cog_api_keys = {
+cog_keys = {
     "eleven": ELEVEN_API_KEY,
     "steam": STEAM_API_KEY,
-    "hello": ELEVEN_API_KEY
+    "hello": ELEVEN_API_KEY,
+    "blackjack": MONGO_URI
 }
 
 @bot.event
@@ -41,13 +46,14 @@ async def on_ready():
             cog_class = getattr(module, f"{cog_name.capitalize()}Cog")
 
             # Check if the cog requires an API key
-            if cog_name in cog_api_keys:
-                cog = cog_class(bot, cog_api_keys[cog_name])
+            if cog_name in cog_keys:
+                cog = cog_class(bot, cog_keys[cog_name])
             else:
                 cog = cog_class(bot)
 
             await bot.add_cog(cog)
             print(f"Loaded cog: {cog_name}")
+
 
 @bot.command()
 async def d(ctx):
